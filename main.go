@@ -13,7 +13,7 @@ import (
 )
 
 type FieldInfo struct {
-	index int
+	col   int
 	ftype string
 	fname string
 }
@@ -30,6 +30,45 @@ func IsComment(cell *xlsx.Cell) bool {
 	return strings.HasPrefix(s, "#")
 }
 
+func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo) {
+	var buffer string
+
+	var columns []string
+	for _, field := range field_list {
+		columns = append(columns, field.fname)
+	}
+
+	buffer += fmt.Sprintln(strings.Join(columns, "\t"))
+
+	for r := 1; r < sheet.MaxRow; r++ {
+		if IsComment(sheet.Cell(r, 0)) {
+			continue
+		}
+
+		var values []string
+		for _, field := range field_list {
+			cell := sheet.Cell(r, field.col)
+			switch field.ftype {
+			case "", "string", "float32":
+				values = append(values, TrimString(cell))
+			default:
+				v, e := cell.Int()
+				if e != nil {
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+					continue
+				}
+				values = append(values, strconv.Itoa(v))
+			}
+		}
+		buffer += fmt.Sprintln(strings.Join(values, "\t"))
+	}
+
+	var fn string = sheet.Name + ".csv"
+	if err := ioutil.WriteFile(fn, []byte(buffer), 0644); err == nil {
+		fmt.Println("Exported", fn)
+	}
+}
+
 func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 	var data []interface{}
 	for r := 1; r < sheet.MaxRow; r++ {
@@ -39,26 +78,16 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 
 		var doc = make(map[string]interface{})
 		for _, field := range field_list {
-			cell := sheet.Cell(r, field.index)
+			cell := sheet.Cell(r, field.col)
 			switch field.ftype {
-			case "string":
-				v, e := cell.String()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
-					continue
-				}
-				doc[field.fname] = v
-			case "float32":
-				v, e := cell.Float()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
-					continue
-				}
-				doc[field.fname] = v
+			case "":
+				continue
+			case "string", "float32":
+				doc[field.fname] = TrimString(cell)
 			default:
 				v, e := cell.Int()
 				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 					continue
 				}
 				doc[field.fname] = v
@@ -86,26 +115,28 @@ func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 
 		var values []string
 		for _, field := range field_list {
-			cell := sheet.Cell(r, field.index)
+			cell := sheet.Cell(r, field.col)
 			switch field.ftype {
+			case "":
+				continue
 			case "string":
 				v, e := cell.String()
 				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 					continue
 				}
 				values = append(values, "`"+v+"`")
 			case "float32":
 				v, e := cell.String()
 				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 					continue
 				}
 				values = append(values, v)
 			default:
 				v, e := cell.Int()
 				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 					continue
 				}
 				values = append(values, strconv.Itoa(v))
@@ -149,6 +180,8 @@ func ExportProtoBuf(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 	for _, field := range field_list {
 		var ftype string
 		switch field.ftype {
+		case "":
+			continue
 		case "int16":
 			ftype = "int32"
 		case "uint16":
@@ -156,7 +189,7 @@ func ExportProtoBuf(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 		default:
 			ftype = field.ftype
 		}
-		buf += fmt.Sprintf("    required %s %s = %d;\n", ftype, field.fname, field.index+1)
+		buf += fmt.Sprintf("    required %s %s = %d;\n", ftype, field.fname, field.col+1)
 	}
 	buf += fmt.Sprintf("  }\n\n")
 
@@ -186,33 +219,25 @@ func ExportFile(filename string) {
 		for col := 0; col < sheet.MaxCol; col++ {
 			fname := TrimString(sheet.Cell(1, col))
 			ftype := TrimString(sheet.Cell(2, col))
-			if len(fname) > 0 && len(ftype) > 0 {
-				var field FieldInfo
-				field.index = col
-				field.fname = fname
-				field.ftype = ftype
-
+			if len(fname) > 0 {
+				field := FieldInfo{col: col, fname: fname, ftype: ftype}
 				field_list = append(field_list, field)
 			}
 		}
-		if len(field_list) == 0 {
-			continue
-		}
+
+		ExportCSV(sheet, field_list)
 
 		// 이름
 		var name string = TrimString(sheet.Cell(0, 1))
-		if len(name) == 0 {
-			continue
-		}
-
-		// 명령어
-		switch cmd := TrimString(sheet.Cell(0, 0)); cmd {
-		case "json", "JSON":
-			ExportJson(sheet, name, field_list)
-		case "sql", "SQL":
-			ExportSQL(sheet, name, field_list)
-		case "protobuf", "PROTOBUF":
-			ExportProtoBuf(sheet, name, field_list)
+		if len(name) > 0 {
+			switch cmd := TrimString(sheet.Cell(0, 0)); cmd {
+			case "json", "JSON":
+				ExportJson(sheet, name, field_list)
+			case "sql", "SQL":
+				ExportSQL(sheet, name, field_list)
+			case "protobuf", "PROTOBUF":
+				ExportProtoBuf(sheet, name, field_list)
+			}
 		}
 	}
 }
