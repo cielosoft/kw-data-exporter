@@ -1,4 +1,4 @@
-package main
+package kwdataexpoter
 
 import (
 	"encoding/json"
@@ -44,21 +44,21 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 			case "string":
 				v, e := cell.String()
 				if e != nil {
-					fmt.Printf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
 					continue
 				}
 				doc[field.fname] = v
 			case "float32":
 				v, e := cell.Float()
 				if e != nil {
-					fmt.Printf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
 					continue
 				}
 				doc[field.fname] = v
 			default:
 				v, e := cell.Int()
 				if e != nil {
-					fmt.Printf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
 					continue
 				}
 				doc[field.fname] = v
@@ -91,21 +91,21 @@ func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 			case "string":
 				v, e := cell.String()
 				if e != nil {
-					fmt.Printf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
 					continue
 				}
 				values = append(values, "`"+v+"`")
 			case "float32":
 				v, e := cell.String()
 				if e != nil {
-					fmt.Printf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
 					continue
 				}
 				values = append(values, v)
 			default:
 				v, e := cell.Int()
 				if e != nil {
-					fmt.Printf("row: %d, col: %d, %s\n", r, field.index, e)
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.index, e)
 					continue
 				}
 				values = append(values, strconv.Itoa(v))
@@ -172,7 +172,7 @@ func ExportProtoBuf(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 func ExportFile(filename string) {
 	fp, err := xlsx.OpenFile(filename)
 	if err != nil {
-		fmt.Println("OpenFile Error:", filename)
+		fmt.Errorf("OpenFile Error:", filename)
 		return
 	}
 
