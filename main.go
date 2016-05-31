@@ -54,7 +54,7 @@ func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo) {
 		columns = append(columns, field.fname)
 	}
 
-	buffer += fmt.Sprintln(strings.Join(columns, "\t"))
+	buffer += fmt.Sprintln(strings.Join(columns, "\t") + "\r")
 
 	for r := 1; r < sheet.MaxRow; r++ {
 		if IsComment(sheet.Cell(r, 0)) {
@@ -99,7 +99,7 @@ func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo) {
 			}
 		}
 		if len(values) == len(field_list) {
-			buffer += fmt.Sprintln(strings.Join(values, "\t"))
+			buffer += fmt.Sprintln(strings.Join(values, "\t") + "\r")
 		} else {
 			// fmt.Println("Skipped row:", r, "values:", values)
 		}
@@ -148,7 +148,7 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 	if buf, err := json.Marshal(data); err != nil {
 		fmt.Println(err)
 	} else {
-		fn := CamelToSnake(name)+".json"
+		fn := CamelToSnake(name) + ".json"
 		if err := ioutil.WriteFile(fn, buf, 0644); err == nil {
 			fmt.Println("Exported", fn, len(data))
 		}
@@ -210,7 +210,7 @@ func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo, filename 
 	buf += strings.Join(data, ",\n")
 	buf += ";"
 
-	fn := CamelToSnake(name)+".sql"
+	fn := CamelToSnake(name) + ".sql"
 	if err := ioutil.WriteFile(fn, []byte(buf), 0644); err == nil {
 		fmt.Println("Exported", fn, len(data))
 	}
@@ -245,7 +245,7 @@ func ExportProtoBuf(sheet *xlsx.Sheet, name string, field_list []FieldInfo, file
 	buf += fmt.Sprintf("  repeated %s data = 1;\n", name)
 	buf += fmt.Sprintf("}\n")
 
-	fn := CamelToSnake(name)+".proto"
+	fn := CamelToSnake(name) + ".proto"
 	if err := ioutil.WriteFile(fn, []byte(buf), 0644); err == nil {
 		fmt.Println("Exported", fn)
 	}
