@@ -323,7 +323,7 @@ func main() {
 
 	// 기본은 현재 디렉토리
 	var target string = "."
-	if flag.NArg() > 1 {
+	if flag.NArg() > 0 {
 		target = flag.Arg(0)
 	}
 
