@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/tealeg/xlsx"
 	"io/ioutil"
@@ -12,6 +13,12 @@ import (
 	"time"
 	"unicode"
 )
+
+// 전역 변수
+var USE_CSV bool
+var USE_JSON bool
+var USE_SQL bool
+var USE_PROTOBUF bool
 
 type FieldInfo struct {
 	col   int
@@ -277,27 +284,47 @@ func ExportFile(filename string) {
 		var name string = TrimString(sheet.Cell(0, 1))
 
 		// csv 파일
-		if !strings.HasPrefix(name, "!") {
+		if USE_CSV && !strings.HasPrefix(name, "!") {
 			ExportCSV(sheet, field_list)
 		}
 		if len(name) > 0 {
 			switch cmd := TrimString(sheet.Cell(0, 0)); cmd {
 			case "json", "JSON":
-				ExportJson(sheet, name, field_list)
+				if USE_JSON {
+					ExportJson(sheet, name, field_list)
+				}
 			case "sql", "SQL":
-				ExportSQL(sheet, name, field_list, filename)
+				if USE_SQL {
+					ExportSQL(sheet, name, field_list, filename)
+				}
 			case "protobuf", "PROTOBUF":
-				ExportProtoBuf(sheet, name, field_list, filename)
+				if USE_PROTOBUF {
+					ExportProtoBuf(sheet, name, field_list, filename)
+				}
 			}
 		}
 	}
 }
 
 func main() {
-	// 인자값이 없으면 현재 디렉토리
+	no_csv := flag.Bool("no-csv", false, "csv 형식 사용 안함")
+	flag_all := flag.Bool("all", false, "모든 형식 사용")
+	flag.BoolVar(&USE_JSON, "json", false, "json 형식 사용")
+	flag.BoolVar(&USE_SQL, "sql", false, "sql 형식 사용")
+	flag.BoolVar(&USE_PROTOBUF, "protobuf", false, "protobuf 형식 사용")
+	flag.Parse()
+
+	USE_CSV = !(*no_csv)
+	if *flag_all {
+		USE_JSON = true
+		USE_SQL = true
+		USE_PROTOBUF = true
+	}
+
+	// 기본은 현재 디렉토리
 	var target string = "."
-	if len(os.Args) > 1 {
-		target = os.Args[1]
+	if flag.NArg() > 1 {
+		target = flag.Arg(0)
 	}
 
 	fileinfo, err := os.Stat(target)

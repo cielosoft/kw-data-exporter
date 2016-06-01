@@ -7,6 +7,11 @@
 go get -u github.com/cielosoft/kw-data-exporter
 ```
 
+## Usages
+```
+kw-data-expoprter --no_csv --json --sql --protobuf --all
+```
+
 ## Rules
 - #표시로 시작하는 경우 주석
 - A1: 추출 포맷 (예: #JSON)
