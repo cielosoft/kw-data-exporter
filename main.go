@@ -181,7 +181,7 @@ func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo, filename 
 					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 					continue
 				}
-				values = append(values, "`"+v+"`")
+				values = append(values, "'"+v+"'")
 			case "float32":
 				v, e := cell.Float()
 				if e != nil {
@@ -198,8 +198,11 @@ func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo, filename 
 				values = append(values, strconv.Itoa(v))
 			}
 		}
-
-		data = append(data, fmt.Sprintf("(%s)", strings.Join(values, ",")))
+		if len(values) == len(field_list) {
+			data = append(data, fmt.Sprintf("(%s)", strings.Join(values, ",")))
+		} else {
+			// fmt.Println("Skipped row:", r, "values:", values)
+		}
 	}
 
 	var buf string
