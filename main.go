@@ -283,15 +283,17 @@ func ExportFile(filename string) {
 				field_list = append(field_list, field)
 			}
 		}
+		// 명령어
+		var cmd string = TrimString(sheet.Cell(0, 0))
 		// 이름
 		var name string = TrimString(sheet.Cell(0, 1))
 
 		// csv 파일
-		if USE_CSV && !strings.HasPrefix(name, "!") {
+		if USE_CSV && !strings.HasPrefix(cmd, "!") {
 			ExportCSV(sheet, field_list)
 		}
 		if len(name) > 0 {
-			switch cmd := TrimString(sheet.Cell(0, 0)); cmd {
+			switch cmd {
 			case "json", "JSON":
 				if USE_JSON {
 					ExportJson(sheet, name, field_list)
