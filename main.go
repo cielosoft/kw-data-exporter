@@ -119,6 +119,13 @@ func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo) {
 }
 
 func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
+	field_count := 0
+	for _, field := range field_list {
+		if len(field.ftype) > 0 {
+			field_count++
+		}
+	}
+
 	var data []interface{}
 	for r := 1; r < sheet.MaxRow; r++ {
 		if IsComment(sheet.Cell(r, 0)) {
@@ -149,7 +156,9 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 				doc[field.fname] = v
 			}
 		}
-		data = append(data, doc)
+		if len(doc) == field_count {
+			data = append(data, doc)
+		}
 	}
 
 	if buf, err := json.Marshal(data); err != nil {
@@ -163,6 +172,13 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 }
 
 func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo, filename string) {
+	field_count := 0
+	for _, field := range field_list {
+		if len(field.ftype) > 0 {
+			field_count++
+		}
+	}
+
 	var data []string
 	for r := 1; r < sheet.MaxRow; r++ {
 		if IsComment(sheet.Cell(r, 0)) {
@@ -198,10 +214,8 @@ func ExportSQL(sheet *xlsx.Sheet, name string, field_list []FieldInfo, filename 
 				values = append(values, strconv.Itoa(v))
 			}
 		}
-		if len(values) == len(field_list) {
+		if len(values) == field_count {
 			data = append(data, fmt.Sprintf("(%s)", strings.Join(values, ",")))
-		} else {
-			// fmt.Println("Skipped row:", r, "values:", values)
 		}
 	}
 
