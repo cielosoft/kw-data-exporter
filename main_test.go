@@ -17,6 +17,10 @@ func TestExportFile(t *testing.T) {
 	ExportFile(filename)
 }
 
+func TestExportSQLFile(t *testing.T) {
+	ExportSQLFile(filename)
+}
+
 func BenchmarkExportFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ExportFile(filename)
