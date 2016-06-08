@@ -340,14 +340,18 @@ func ExportFile(filename string) {
 	for _, sheet := range fp.Sheets {
 		header := ReadHeader(sheet, false)
 
-		if len(header.name) == 0 || len(header.field_list) == 0 {
+		if len(header.field_list) == 0 {
 			continue
 		}
-
 		// csv 파일
 		if USE_CSV && !strings.HasPrefix(header.exec, "!") {
 			ExportCSV(sheet, header.field_list, filename)
 		}
+
+		if len(header.name) == 0 {
+			continue
+		}
+
 		// JSON 파일
 		if USE_JSON && strings.Contains(header.exec, "JSON") {
 			ExportJson(sheet, header.name, header.field_list)
