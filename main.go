@@ -204,6 +204,64 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 	}
 }
 
+func ExportKeyValue(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
+	field_count := 0
+	for _, field := range field_list {
+		if len(field.ftype) > 0 {
+			field_count++
+		}
+	}
+
+	var data = make(map[string]interface{})
+	for r := 1; r < sheet.MaxRow; r++ {
+		if IsComment(sheet.Cell(r, 0)) {
+			continue
+		}
+
+		var key string = ""
+		var value interface{}
+		for _, field := range field_list {
+			cell := sheet.Cell(r, field.col)
+			switch field.fname {
+			case "key":
+				key = TrimString(cell)
+			case "value":
+				switch field.ftype {
+				case "string":
+					value = TrimString(cell)
+				case "float":
+					v, e := cell.Float()
+					if e != nil {
+						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+						continue
+					}
+					value = v
+				default:
+					v, e := cell.Int()
+					if e != nil {
+						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+						continue
+					}
+					value = v
+				}
+
+			}
+		}
+		data[key] = value
+	}
+
+	if buffer, err := json.Marshal(data); err != nil {
+		fmt.Println(err)
+	} else {
+		fn := CamelToSnake(name) + ".json"
+		if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
+			fmt.Println("Exported", path.Base(fn), len(data))
+		} else {
+			fmt.Println(err)
+		}
+	}
+}
+
 func ExportProtoBuf(sheet *xlsx.Sheet, name string, field_list []FieldInfo, filename string) {
 	var buffer string
 
@@ -352,6 +410,10 @@ func ExportFile(filename string) {
 		// JSON 파일
 		if USE_JSON && strings.Contains(header.exec, "JSON") {
 			ExportJson(sheet, header.name, header.field_list)
+		}
+		// KeyValue 파일
+		if USE_JSON && strings.Contains(header.exec, "KEYVALUE") {
+			ExportKeyValue(sheet, header.name, header.field_list)
 		}
 		// Protocol Buffers 파일
 		if USE_PROTOBUF && strings.Contains(header.exec, "PROTOBUF") {

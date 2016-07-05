@@ -18,6 +18,7 @@ kw-data-expoprter --no_csv --json --sql --protobuf --all
   - JSON: json 형식
   - SQL: SQL 쿼리 스트크립트
   - PROTOBUF: Protocol Buffers 형식
+  - KeyValue: 키 밸류 타입
   - #!JSON 등 앞에 ! 를 붙일시 서버 전용으로 csv 파일은 추출되지 않습니다
 - A2~: 필드 이름 (예: #level)
 - A3~: 필드 데이터 타입 (예: #string)
