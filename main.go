@@ -170,7 +170,12 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 			case "":
 				continue
 			case "string":
-				doc[field.fname] = TrimString(cell)
+				value := TrimString(cell)
+				if len(value) == 0 {
+					fmt.Errorf("row: %d, col: %d, Field is empty\n", r, field.col)
+					continue
+				}
+				doc[field.fname] = value
 			case "float32":
 				v, e := cell.Float()
 				if e != nil {
