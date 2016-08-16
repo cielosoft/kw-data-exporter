@@ -27,7 +27,7 @@ type FieldInfo struct {
 type Header struct {
 	name       string
 	exec       string
-	field_list []FieldInfo
+	fieldList  []FieldInfo
 }
 
 func TrimString(cell *xlsx.Cell) string {
@@ -76,17 +76,17 @@ func ReadHeader(sheet *xlsx.Sheet, type_check bool) (header Header) {
 		}
 
 		field := FieldInfo{col: col, fname: fname, ftype: ftype}
-		header.field_list = append(header.field_list, field)
+		header.fieldList = append(header.fieldList, field)
 	}
 	return
 }
 
-func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo, filename string) {
+func ExportCSV(sheet *xlsx.Sheet, fieldList []FieldInfo, filename string) {
 	var count int = 0
 	var buffer string
 
 	var columns []string
-	for _, field := range field_list {
+	for _, field := range fieldList {
 		columns = append(columns, field.fname)
 	}
 
@@ -98,7 +98,7 @@ func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo, filename string) {
 		}
 
 		var values []string
-		for _, field := range field_list {
+		for _, field := range fieldList {
 			cell := sheet.Cell(r, field.col)
 			// 비어 있다
 			if len(TrimString(cell)) == 0 {
@@ -134,7 +134,7 @@ func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo, filename string) {
 				values = append(values, strconv.Itoa(v))
 			}
 		}
-		if len(values) == len(field_list) {
+		if len(values) == len(fieldList) {
 			buffer += fmt.Sprintln(strings.Join(values, "\t") + "\r")
 			count++
 		}
@@ -148,11 +148,11 @@ func ExportCSV(sheet *xlsx.Sheet, field_list []FieldInfo, filename string) {
 	}
 }
 
-func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
-	field_count := 0
-	for _, field := range field_list {
+func ExportJson(sheet *xlsx.Sheet, name string, fieldList []FieldInfo) {
+	fieldCount := 0
+	for _, field := range fieldList {
 		if len(field.ftype) > 0 {
-			field_count++
+			fieldCount++
 		}
 	}
 
@@ -163,7 +163,7 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 		}
 
 		var doc = make(map[string]interface{})
-		for _, field := range field_list {
+		for _, field := range fieldList {
 			cell := sheet.Cell(r, field.col)
 			switch field.ftype {
 			case "":
@@ -191,7 +191,7 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 				doc[field.fname] = v
 			}
 		}
-		if len(doc) == field_count {
+		if len(doc) == fieldCount {
 			data = append(data, doc)
 		}
 	}
@@ -208,11 +208,11 @@ func ExportJson(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 	}
 }
 
-func ExportKeyValue(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
-	field_count := 0
-	for _, field := range field_list {
+func ExportKeyValue(sheet *xlsx.Sheet, name string, fieldList []FieldInfo) {
+	fieldCount := 0
+	for _, field := range fieldList {
 		if len(field.ftype) > 0 {
-			field_count++
+			fieldCount++
 		}
 	}
 
@@ -224,7 +224,7 @@ func ExportKeyValue(sheet *xlsx.Sheet, name string, field_list []FieldInfo) {
 
 		var key string = ""
 		var value interface{}
-		for _, field := range field_list {
+		for _, field := range fieldList {
 			cell := sheet.Cell(r, field.col)
 			switch field.fname {
 			case "key":
@@ -282,7 +282,7 @@ func ExportSQLFile(filename string) {
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet, true)
 
-		if len(header.name) == 0 || len(header.field_list) == 0 {
+		if len(header.name) == 0 || len(header.fieldList) == 0 {
 			continue
 		}
 		if !strings.Contains(header.exec, "SQL") {
@@ -290,7 +290,7 @@ func ExportSQLFile(filename string) {
 		}
 
 		var columns []string
-		for _, field := range header.field_list {
+		for _, field := range header.fieldList {
 			columns = append(columns, "`"+field.fname+"`")
 		}
 
@@ -301,7 +301,7 @@ func ExportSQLFile(filename string) {
 			}
 
 			var values []string
-			for _, field := range header.field_list {
+			for _, field := range header.fieldList {
 				cell := sheet.Cell(r, field.col)
 				switch field.ftype {
 				case "":
@@ -329,7 +329,7 @@ func ExportSQLFile(filename string) {
 					values = append(values, strconv.Itoa(v))
 				}
 			}
-			if len(values) == len(header.field_list) {
+			if len(values) == len(header.fieldList) {
 				data = append(data, fmt.Sprintf("(%s)", strings.Join(values, ",")))
 				count++
 			}
@@ -363,12 +363,12 @@ func ExportFile(filename string) {
 	for _, sheet := range fp.Sheets {
 		header := ReadHeader(sheet, false)
 
-		if len(header.field_list) == 0 {
+		if len(header.fieldList) == 0 {
 			continue
 		}
 		// csv 파일
 		if USE_CSV && !strings.HasPrefix(header.exec, "!") {
-			ExportCSV(sheet, header.field_list, filename)
+			ExportCSV(sheet, header.fieldList, filename)
 		}
 
 		if len(header.name) == 0 {
@@ -377,11 +377,11 @@ func ExportFile(filename string) {
 
 		// JSON 파일
 		if USE_JSON && strings.Contains(header.exec, "JSON") {
-			ExportJson(sheet, header.name, header.field_list)
+			ExportJson(sheet, header.name, header.fieldList)
 		}
 		// KeyValue 파일
 		if USE_JSON && strings.Contains(header.exec, "KEYVALUE") {
-			ExportKeyValue(sheet, header.name, header.field_list)
+			ExportKeyValue(sheet, header.name, header.fieldList)
 		}
 	}
 
