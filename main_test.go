@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"github.com/tealeg/xlsx"
+	"testing"
+)
 
 const filename string = "sample.xlsx"
 
@@ -17,8 +20,24 @@ func TestExportFile(t *testing.T) {
 	ExportFile(filename)
 }
 
+func TestExportCSVFile(t *testing.T) {
+	xlsx_file, _ := xlsx.OpenFile(filename)
+	ExportCSVFile(xlsx_file)
+}
+
+func TestExportJsonFile(t *testing.T) {
+	xlsx_file, _ := xlsx.OpenFile(filename)
+	ExportJsonFile(xlsx_file)
+}
+
+func TestExportKeyValueFile(t *testing.T) {
+	xlsx_file, _ := xlsx.OpenFile(filename)
+	ExportKeyValueFile(xlsx_file)
+}
+
 func TestExportSQLFile(t *testing.T) {
-	ExportSQLFile(filename)
+	xlsx_file, _ := xlsx.OpenFile(filename)
+	ExportSQLFile(xlsx_file, filename)
 }
 
 func BenchmarkExportFile(b *testing.B) {

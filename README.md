@@ -18,14 +18,11 @@ kw-data-expoprter --no_csv --json --sql --all
   - JSON: json 형식
   - SQL: SQL 쿼리 스트크립트
   - KeyValue: 키 밸류 타입
-  - #!JSON 등 앞에 ! 를 붙일시 서버 전용으로 csv 파일은 추출되지 않습니다
+- B1: 이름
 - A2~: 필드 이름 (예: #level)
-- A3~: 필드 데이터 타입 (예: #string)
+- A3~: CSV 전용 필드 이름 (예: #level)
+- A4~: 필드 데이터 타입 (예: #string)
   - string: 문자열
-  - int, uint: 정수
   - float: 실수
-  - Depricated
-    - float32: 실수
-    - int8, uint8, int16, uint16, int32, uint32: 정수
-  - 타입을 생략 하면 csv 파일에서만 추출 됩니다
+  - int: 정수 (기본)
 - 날짜 형식은 지원하지 않습니다 (반드시 텍스트로 형식으로 지정 해야 함)

@@ -25,9 +25,10 @@ type FieldInfo struct {
 }
 
 type Header struct {
-	name       string
-	exec       string
-	fieldList  []FieldInfo
+	name         string
+	exec         string
+	fieldList    []FieldInfo
+	csvFieldList []FieldInfo
 }
 
 func TrimString(cell *xlsx.Cell) string {
@@ -57,222 +58,234 @@ func CamelToSnake(in string) string {
 	return string(out)
 }
 
-func ReadHeader(sheet *xlsx.Sheet, type_check bool) (header Header) {
-	if sheet.MaxRow < 3 || sheet.MaxCol < 2 {
+func ReadHeader(sheet *xlsx.Sheet) (header Header) {
+	if sheet.MaxRow < 4 || sheet.MaxCol < 2 {
 		return
 	}
 
 	header.exec = strings.ToUpper(TrimString(sheet.Cell(0, 0)))
 	header.name = TrimString(sheet.Cell(0, 1))
 
+	// fieldList
 	for col := 0; col < sheet.MaxCol; col++ {
 		fname := TrimString(sheet.Cell(1, col))
 		if len(fname) == 0 {
 			continue
 		}
-		ftype := TrimString(sheet.Cell(2, col))
-		if type_check && len(ftype) == 0 {
+		ftype := TrimString(sheet.Cell(3, col))
+
+		header.fieldList = append(header.fieldList, FieldInfo{col: col, fname: fname, ftype: ftype})
+	}
+	// csvFieldList
+	for col := 0; col < sheet.MaxCol; col++ {
+		fname := TrimString(sheet.Cell(2, col))
+		if len(fname) == 0 {
 			continue
 		}
+		ftype := TrimString(sheet.Cell(3, col))
 
-		field := FieldInfo{col: col, fname: fname, ftype: ftype}
-		header.fieldList = append(header.fieldList, field)
+		header.csvFieldList = append(header.fieldList, FieldInfo{col: col, fname: fname, ftype: ftype})
 	}
 	return
 }
 
-func ExportCSV(sheet *xlsx.Sheet, fieldList []FieldInfo, filename string) {
-	var count int = 0
-	var buffer string
-
-	var columns []string
-	for _, field := range fieldList {
-		columns = append(columns, field.fname)
-	}
-
-	buffer += fmt.Sprintln(strings.Join(columns, "\t") + "\r")
-
-	for r := 1; r < sheet.MaxRow; r++ {
-		if IsComment(sheet.Cell(r, 0)) {
+func ExportCSVFile(xlsx_file *xlsx.File) {
+	for _, sheet := range xlsx_file.Sheets {
+		header := ReadHeader(sheet)
+		if len(header.csvFieldList) == 0 {
 			continue
 		}
 
-		var values []string
-		for _, field := range fieldList {
-			cell := sheet.Cell(r, field.col)
-			// 비어 있다
-			if len(TrimString(cell)) == 0 {
+		var count int = 0
+		var buffer string
+
+		var columns []string
+		for _, field := range header.csvFieldList {
+			columns = append(columns, field.fname)
+		}
+
+		buffer += fmt.Sprintln(strings.Join(columns, "\t") + "\r")
+
+		for r := 1; r < sheet.MaxRow; r++ {
+			if IsComment(sheet.Cell(r, 0)) {
 				continue
 			}
 
-			switch field.ftype {
-			case "":
-				switch cell.Type() {
-				case xlsx.CellTypeDate:
-					fmt.Println(TrimString(cell))
-				case xlsx.CellTypeFormula, xlsx.CellTypeNumeric:
-					v, _ := cell.Float()
-					values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
-				default:
-					values = append(values, TrimString(cell))
-				}
-			case "string":
-				values = append(values, TrimString(cell))
-			case "float", "float32":
-				v, e := cell.Float()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+			var values []string
+			for _, field := range header.csvFieldList {
+				cell := sheet.Cell(r, field.col)
+				// 비어 있다
+				if len(TrimString(cell)) == 0 {
 					continue
 				}
-				values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
-			default:
-				v, e := cell.Int()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-					continue
-				}
-				values = append(values, strconv.Itoa(v))
-			}
-		}
-		if len(values) == len(fieldList) {
-			buffer += fmt.Sprintln(strings.Join(values, "\t") + "\r")
-			count++
-		}
-	}
 
-	fn := sheet.Name + ".csv"
-	if err := ioutil.WriteFile(fn, []byte(buffer), 0644); err == nil {
-		fmt.Println("Exported", path.Base(fn), count)
-	} else {
-		fmt.Println(err)
-	}
-}
-
-func ExportJson(sheet *xlsx.Sheet, name string, fieldList []FieldInfo) {
-	fieldCount := 0
-	for _, field := range fieldList {
-		if len(field.ftype) > 0 {
-			fieldCount++
-		}
-	}
-
-	var data []interface{}
-	for r := 1; r < sheet.MaxRow; r++ {
-		if IsComment(sheet.Cell(r, 0)) {
-			continue
-		}
-
-		var doc = make(map[string]interface{})
-		for _, field := range fieldList {
-			cell := sheet.Cell(r, field.col)
-			switch field.ftype {
-			case "":
-				continue
-			case "string":
-				value := TrimString(cell)
-				if len(value) == 0 {
-					fmt.Errorf("row: %d, col: %d, Field is empty\n", r, field.col)
-					continue
-				}
-				doc[field.fname] = value
-			case "float", "float32":
-				v, e := cell.Float()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-					continue
-				}
-				doc[field.fname] = v
-			default:
-				v, e := cell.Int()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-					continue
-				}
-				doc[field.fname] = v
-			}
-		}
-		if len(doc) == fieldCount {
-			data = append(data, doc)
-		}
-	}
-
-	if buffer, err := json.Marshal(data); err != nil {
-		fmt.Println(err)
-	} else {
-		fn := CamelToSnake(name) + ".json"
-		if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
-			fmt.Println("Exported", path.Base(fn), len(data))
-		} else {
-			fmt.Println(err)
-		}
-	}
-}
-
-func ExportKeyValue(sheet *xlsx.Sheet, name string, fieldList []FieldInfo) {
-	fieldCount := 0
-	for _, field := range fieldList {
-		if len(field.ftype) > 0 {
-			fieldCount++
-		}
-	}
-
-	var data = make(map[string]interface{})
-	for r := 1; r < sheet.MaxRow; r++ {
-		if IsComment(sheet.Cell(r, 0)) {
-			continue
-		}
-
-		var key string = ""
-		var value interface{}
-		for _, field := range fieldList {
-			cell := sheet.Cell(r, field.col)
-			switch field.fname {
-			case "key":
-				key = TrimString(cell)
-			case "value":
 				switch field.ftype {
+				case "":
+					switch cell.Type() {
+					case xlsx.CellTypeDate:
+						fmt.Println(TrimString(cell))
+					case xlsx.CellTypeFormula, xlsx.CellTypeNumeric:
+						v, _ := cell.Float()
+						values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
+					default:
+						values = append(values, TrimString(cell))
+					}
 				case "string":
-					value = TrimString(cell)
+					values = append(values, TrimString(cell))
 				case "float":
 					v, e := cell.Float()
 					if e != nil {
 						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 						continue
 					}
-					value = v
+					values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
 				default:
 					v, e := cell.Int()
 					if e != nil {
 						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
 						continue
 					}
-					value = v
+					values = append(values, strconv.Itoa(v))
 				}
-
+			}
+			if len(values) == len(header.csvFieldList) {
+				buffer += fmt.Sprintln(strings.Join(values, "\t") + "\r")
+				count++
 			}
 		}
-		data[key] = value
-	}
 
-	if buffer, err := json.Marshal(data); err != nil {
-		fmt.Println(err)
-	} else {
-		fn := CamelToSnake(name) + ".json"
-		if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
-			fmt.Println("Exported", path.Base(fn), len(data))
+		fn := sheet.Name + ".csv"
+		if err := ioutil.WriteFile(fn, []byte(buffer), 0644); err == nil {
+			fmt.Println("Exported", path.Base(fn), count)
 		} else {
 			fmt.Println(err)
 		}
 	}
 }
 
-func ExportSQLFile(filename string) {
-	xlsx_file, err := xlsx.OpenFile(filename)
-	if err != nil {
-		fmt.Errorf("OpenFile Error:", filename)
-		return
-	}
+func ExportJsonFile(xlsx_file *xlsx.File) {
+	for _, sheet := range xlsx_file.Sheets {
+		header := ReadHeader(sheet)
+		if !strings.Contains(header.exec, "JSON") {
+			continue
+		}
+		if len(header.name) == 0 || len(header.fieldList) == 0 {
+			continue
+		}
 
+		var data []interface{}
+		for r := 1; r < sheet.MaxRow; r++ {
+			if IsComment(sheet.Cell(r, 0)) {
+				continue
+			}
+
+			var doc = make(map[string]interface{})
+			for _, field := range header.fieldList {
+				cell := sheet.Cell(r, field.col)
+				switch field.ftype {
+				case "string":
+					value := TrimString(cell)
+					if len(value) == 0 {
+						fmt.Errorf("row: %d, col: %d, Field is empty\n", r, field.col)
+						continue
+					}
+					doc[field.fname] = value
+				case "float":
+					v, e := cell.Float()
+					if e != nil {
+						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+						continue
+					}
+					doc[field.fname] = v
+				default:
+					v, e := cell.Int()
+					if e != nil {
+						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+						continue
+					}
+					doc[field.fname] = v
+				}
+			}
+			if len(doc) == len(header.fieldList) {
+				data = append(data, doc)
+			}
+		}
+
+		if buffer, err := json.Marshal(data); err != nil {
+			fmt.Println(err)
+		} else {
+			fn := CamelToSnake(header.name) + ".json"
+			if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(fn), len(data))
+			} else {
+				fmt.Println(err)
+			}
+		}
+	}
+}
+
+func ExportKeyValueFile(xlsx_file *xlsx.File) {
+	for _, sheet := range xlsx_file.Sheets {
+		header := ReadHeader(sheet)
+		if !strings.Contains(header.exec, "KEYVALUE") {
+			continue
+		}
+		if len(header.name) == 0 || len(header.fieldList) == 0 {
+			continue
+		}
+
+		var data = make(map[string]interface{})
+		for r := 1; r < sheet.MaxRow; r++ {
+			if IsComment(sheet.Cell(r, 0)) {
+				continue
+			}
+
+			var key string = ""
+			var value interface{}
+			for _, field := range header.fieldList {
+				cell := sheet.Cell(r, field.col)
+				switch field.fname {
+				case "key":
+					key = TrimString(cell)
+				case "value":
+					switch field.ftype {
+					case "string":
+						value = TrimString(cell)
+					case "float":
+						v, e := cell.Float()
+						if e != nil {
+							fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+							continue
+						}
+						value = v
+					default:
+						v, e := cell.Int()
+						if e != nil {
+							fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+							continue
+						}
+						value = v
+					}
+
+				}
+			}
+			data[key] = value
+		}
+
+		if buffer, err := json.Marshal(data); err != nil {
+			fmt.Println(err)
+		} else {
+			fn := CamelToSnake(header.name) + ".json"
+			if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(fn), len(data))
+			} else {
+				fmt.Println(err)
+			}
+		}
+	}
+}
+
+func ExportSQLFile(xlsx_file *xlsx.File, filename string) {
 	var count int = 0
 	var buffer string
 
@@ -280,12 +293,11 @@ func ExportSQLFile(filename string) {
 	buffer += fmt.Sprintf("-- Source: %s\n", path.Base(filename))
 
 	for _, sheet := range xlsx_file.Sheets {
-		header := ReadHeader(sheet, true)
-
-		if len(header.name) == 0 || len(header.fieldList) == 0 {
+		header := ReadHeader(sheet)
+		if !strings.Contains(header.exec, "SQL") {
 			continue
 		}
-		if !strings.Contains(header.exec, "SQL") {
+		if len(header.name) == 0 || len(header.fieldList) == 0 {
 			continue
 		}
 
@@ -304,8 +316,6 @@ func ExportSQLFile(filename string) {
 			for _, field := range header.fieldList {
 				cell := sheet.Cell(r, field.col)
 				switch field.ftype {
-				case "":
-					continue
 				case "string":
 					v, e := cell.String()
 					if e != nil {
@@ -313,7 +323,7 @@ func ExportSQLFile(filename string) {
 						continue
 					}
 					values = append(values, "'"+v+"'")
-				case "float", "float32":
+				case "float":
 					v, e := cell.Float()
 					if e != nil {
 						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
@@ -354,39 +364,22 @@ func ExportSQLFile(filename string) {
 }
 
 func ExportFile(filename string) {
-	fp, err := xlsx.OpenFile(filename)
+	xlsx_file, err := xlsx.OpenFile(filename)
 	if err != nil {
 		fmt.Errorf("OpenFile Error:", filename)
 		return
 	}
 
-	for _, sheet := range fp.Sheets {
-		header := ReadHeader(sheet, false)
-
-		if len(header.fieldList) == 0 {
-			continue
-		}
-		// csv 파일
-		if USE_CSV && !strings.HasPrefix(header.exec, "!") {
-			ExportCSV(sheet, header.fieldList, filename)
-		}
-
-		if len(header.name) == 0 {
-			continue
-		}
-
-		// JSON 파일
-		if USE_JSON && strings.Contains(header.exec, "JSON") {
-			ExportJson(sheet, header.name, header.fieldList)
-		}
-		// KeyValue 파일
-		if USE_JSON && strings.Contains(header.exec, "KEYVALUE") {
-			ExportKeyValue(sheet, header.name, header.fieldList)
-		}
+	if USE_CSV {
+		ExportCSVFile(xlsx_file)
 	}
 
+	if USE_JSON {
+		ExportJsonFile(xlsx_file)
+		ExportKeyValueFile(xlsx_file)
+	}
 	if USE_SQL {
-		ExportSQLFile(filename)
+		ExportSQLFile(xlsx_file, filename)
 	}
 }
 
