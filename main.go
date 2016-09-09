@@ -62,6 +62,11 @@ func ReadHeader(sheet *xlsx.Sheet) (header Header) {
 	if sheet.MaxRow < 4 || sheet.MaxCol < 2 {
 		return
 	}
+	for i := 0; i < 4; i++ {
+		if IsComment(sheet.Cell(i, 0)) == false {
+			return
+		}
+	}
 
 	header.exec = strings.ToUpper(TrimString(sheet.Cell(0, 0)))
 	header.name = TrimString(sheet.Cell(0, 1))
@@ -84,7 +89,7 @@ func ReadHeader(sheet *xlsx.Sheet) (header Header) {
 		}
 		ftype := TrimString(sheet.Cell(3, col))
 
-		header.csvFieldList = append(header.fieldList, FieldInfo{col: col, fname: fname, ftype: ftype})
+		header.csvFieldList = append(header.csvFieldList, FieldInfo{col: col, fname: fname, ftype: ftype})
 	}
 	return
 }
@@ -116,20 +121,11 @@ func ExportCSVFile(xlsx_file *xlsx.File) {
 				cell := sheet.Cell(r, field.col)
 				// 비어 있다
 				if len(TrimString(cell)) == 0 {
+					// fmt.Printf("row: %d, col: %d, %s\n\n", r, field.col, field.fname)
 					continue
 				}
 
 				switch field.ftype {
-				case "":
-					switch cell.Type() {
-					case xlsx.CellTypeDate:
-						fmt.Println(TrimString(cell))
-					case xlsx.CellTypeFormula, xlsx.CellTypeNumeric:
-						v, _ := cell.Float()
-						values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
-					default:
-						values = append(values, TrimString(cell))
-					}
 				case "string":
 					values = append(values, TrimString(cell))
 				case "float":
@@ -139,15 +135,19 @@ func ExportCSVFile(xlsx_file *xlsx.File) {
 						continue
 					}
 					values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
-				default:
-					v, e := cell.Int()
-					if e != nil {
-						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-						continue
+				case "auto":
+					switch cell.Type() {
+					case xlsx.CellTypeFormula, xlsx.CellTypeNumeric:
+						v, _ := cell.Float()
+						values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
+					default:
+						values = append(values, TrimString(cell))
 					}
-					values = append(values, strconv.Itoa(v))
+				default:
+					values = append(values, cell.Value)
 				}
 			}
+
 			if len(values) == len(header.csvFieldList) {
 				buffer += fmt.Sprintln(strings.Join(values, "\t") + "\r")
 				count++
