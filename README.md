@@ -1,5 +1,6 @@
-# Kingdom Watch Data Exporter [![Build Status](https://travis-ci.org/cielosoft/kw-data-exporter.svg?branch=master)](https://travis-ci.org/cielosoft/kw-data-exporter)
+# Kingdom Watch Data Exporter
 
+[![Build Status](https://travis-ci.org/cielosoft/kw-data-exporter.svg?branch=master)](https://travis-ci.org/cielosoft/kw-data-exporter)
 
 ## Install
 
@@ -8,9 +9,15 @@ go get -u github.com/cielosoft/kw-data-exporter
 ```
 
 ## Usages
+
 ```
-kw-data-expoprter --no_csv --json --sql --all
+kw-data-expoprter --no-csv --json --sql --all
 ```
+
+- no-csv: csv 포맷 사용 안함
+- json: json 포맷 사용
+- sql: sql 포맷 사용
+- all: json, sql 포맷 사용
 
 ## Rules
 - #표시로 시작하는 경우 주석

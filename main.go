@@ -15,8 +15,9 @@ import (
 
 // 전역 변수
 var USE_CSV bool
-var USE_JSON bool
-var USE_SQL bool
+var jsonflag bool
+var sqlflag bool
+var forcejsonflag bool
 
 type FieldInfo struct {
 	col   int
@@ -166,7 +167,10 @@ func ExportCSVFile(xlsx_file *xlsx.File) {
 func ExportJsonFile(xlsx_file *xlsx.File) {
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
-		if !strings.Contains(header.exec, "JSON") {
+		if !forcejsonflag && !strings.Contains(header.exec, "JSON") {
+			continue
+		}
+		if forcejsonflag && !strings.Contains(header.exec, "JSON") && !strings.Contains(header.exec, "SQL") {
 			continue
 		}
 		if len(header.name) == 0 || len(header.fieldList) == 0 {
@@ -269,7 +273,9 @@ func ExportKeyValueFile(xlsx_file *xlsx.File) {
 
 				}
 			}
-			data[key] = value
+			if len(key) > 0 {
+				data[key] = value
+			}
 		}
 
 		if buffer, err := json.Marshal(data); err != nil {
@@ -374,11 +380,11 @@ func ExportFile(filename string) {
 		ExportCSVFile(xlsx_file)
 	}
 
-	if USE_JSON {
+	if jsonflag {
 		ExportJsonFile(xlsx_file)
 		ExportKeyValueFile(xlsx_file)
 	}
-	if USE_SQL {
+	if sqlflag && !forcejsonflag {
 		ExportSQLFile(xlsx_file, filename)
 	}
 }
@@ -386,14 +392,15 @@ func ExportFile(filename string) {
 func main() {
 	no_csv := flag.Bool("no-csv", false, "csv 형식 사용 안함")
 	flag_all := flag.Bool("all", false, "모든 형식 사용")
-	flag.BoolVar(&USE_JSON, "json", false, "json 형식 사용")
-	flag.BoolVar(&USE_SQL, "sql", false, "sql 형식 사용")
+	flag.BoolVar(&jsonflag, "json", false, "json 형식 사용")
+	flag.BoolVar(&sqlflag, "sql", false, "sql 형식 사용")
+	flag.BoolVar(&forcejsonflag, "forcejson", false, "sql 형식 사용")
 	flag.Parse()
 
 	USE_CSV = !(*no_csv)
 	if *flag_all {
-		USE_JSON = true
-		USE_SQL = true
+		jsonflag = true
+		sqlflag = true
 	}
 
 	// 기본은 현재 디렉토리
