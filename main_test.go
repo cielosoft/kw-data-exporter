@@ -20,9 +20,9 @@ func TestExportFile(t *testing.T) {
 	ExportFile(filename)
 }
 
-func TestExportCSVFile(t *testing.T) {
+func TestExportCsvFile(t *testing.T) {
 	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportCSVFile(xlsx_file)
+	ExportCsvFile(xlsx_file)
 }
 
 func TestExportJsonFile(t *testing.T) {
@@ -35,9 +35,14 @@ func TestExportKeyValueFile(t *testing.T) {
 	ExportKeyValueFile(xlsx_file)
 }
 
-func TestExportSQLFile(t *testing.T) {
+func TestExportSqlFile(t *testing.T) {
 	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportSQLFile(xlsx_file, filename)
+	ExportSqlFile(xlsx_file, filename)
+}
+
+func TestExportSqlAsJsonFile(t *testing.T) {
+	xlsx_file, _ := xlsx.OpenFile(filename)
+	ExportSqlAsJsonFile(xlsx_file)
 }
 
 func BenchmarkExportFile(b *testing.B) {

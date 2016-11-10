@@ -11,7 +11,7 @@ go get -u github.com/cielosoft/kw-data-exporter
 ## Usages
 
 ```
-kw-data-expoprter --no-csv --json --sql --all
+kw-data-expoprter --help
 ```
 
 - no-csv: csv 포맷 사용 안함

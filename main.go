@@ -17,7 +17,7 @@ import (
 var USE_CSV bool
 var jsonflag bool
 var sqlflag bool
-var forcejsonflag bool
+var sqlasjson bool
 
 type FieldInfo struct {
 	col   int
@@ -95,7 +95,47 @@ func ReadHeader(sheet *xlsx.Sheet) (header Header) {
 	return
 }
 
-func ExportCSVFile(xlsx_file *xlsx.File) {
+func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
+	for r := 1; r < sheet.MaxRow; r++ {
+		if IsComment(sheet.Cell(r, 0)) {
+			continue
+		}
+
+		var node = make(map[string]interface{})
+		for _, field := range fields {
+			cell := sheet.Cell(r, field.col)
+			if len(cell.Value) == 0 {
+				continue
+			}
+
+			switch field.ftype {
+			case "string":
+				value := TrimString(cell)
+				node[field.fname] = value
+			case "float":
+				v, e := cell.Float()
+				if e != nil {
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+					continue
+				}
+				node[field.fname] = v
+			default:
+				v, e := cell.Int()
+				if e != nil {
+					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+					continue
+				}
+				node[field.fname] = v
+			}
+		}
+		if len(node) == len(fields) {
+			data = append(data, node)
+		}
+	}
+	return
+}
+
+func ExportCsvFile(xlsx_file *xlsx.File) {
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
 		if len(header.csvFieldList) == 0 {
@@ -167,54 +207,38 @@ func ExportCSVFile(xlsx_file *xlsx.File) {
 func ExportJsonFile(xlsx_file *xlsx.File) {
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
-		if !forcejsonflag && !strings.Contains(header.exec, "JSON") {
-			continue
-		}
-		if forcejsonflag && !strings.Contains(header.exec, "JSON") && !strings.Contains(header.exec, "SQL") {
+		if !strings.Contains(header.exec, "JSON") {
 			continue
 		}
 		if len(header.name) == 0 || len(header.fieldList) == 0 {
 			continue
 		}
 
-		var data []interface{}
-		for r := 1; r < sheet.MaxRow; r++ {
-			if IsComment(sheet.Cell(r, 0)) {
-				continue
-			}
-
-			var doc = make(map[string]interface{})
-			for _, field := range header.fieldList {
-				cell := sheet.Cell(r, field.col)
-				switch field.ftype {
-				case "string":
-					value := TrimString(cell)
-					if len(value) == 0 {
-						fmt.Errorf("row: %d, col: %d, Field is empty\n", r, field.col)
-						continue
-					}
-					doc[field.fname] = value
-				case "float":
-					v, e := cell.Float()
-					if e != nil {
-						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-						continue
-					}
-					doc[field.fname] = v
-				default:
-					v, e := cell.Int()
-					if e != nil {
-						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-						continue
-					}
-					doc[field.fname] = v
-				}
-			}
-			if len(doc) == len(header.fieldList) {
-				data = append(data, doc)
+		data := ExportJson(sheet, header.fieldList)
+		if buffer, err := json.Marshal(data); err != nil {
+			fmt.Println(err)
+		} else {
+			fn := CamelToSnake(header.name) + ".json"
+			if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(fn), len(data))
+			} else {
+				fmt.Println(err)
 			}
 		}
+	}
+}
 
+func ExportSqlAsJsonFile(xlsx_file *xlsx.File) {
+	for _, sheet := range xlsx_file.Sheets {
+		header := ReadHeader(sheet)
+		if !strings.Contains(header.exec, "SQL") {
+			continue
+		}
+		if len(header.name) == 0 || len(header.fieldList) == 0 {
+			continue
+		}
+
+		data := ExportJson(sheet, header.fieldList)
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
@@ -291,7 +315,7 @@ func ExportKeyValueFile(xlsx_file *xlsx.File) {
 	}
 }
 
-func ExportSQLFile(xlsx_file *xlsx.File, filename string) {
+func ExportSqlFile(xlsx_file *xlsx.File, filename string) {
 	var count int = 0
 	var buffer string
 
@@ -377,24 +401,27 @@ func ExportFile(filename string) {
 	}
 
 	if USE_CSV {
-		ExportCSVFile(xlsx_file)
+		ExportCsvFile(xlsx_file)
 	}
 
 	if jsonflag {
 		ExportJsonFile(xlsx_file)
 		ExportKeyValueFile(xlsx_file)
 	}
-	if sqlflag && !forcejsonflag {
-		ExportSQLFile(xlsx_file, filename)
+	if sqlflag {
+		ExportSqlFile(xlsx_file, filename)
+	}
+	if sqlasjson {
+		ExportSqlAsJsonFile(xlsx_file)
 	}
 }
 
 func main() {
-	no_csv := flag.Bool("no-csv", false, "csv 형식 사용 안함")
-	flag_all := flag.Bool("all", false, "모든 형식 사용")
-	flag.BoolVar(&jsonflag, "json", false, "json 형식 사용")
-	flag.BoolVar(&sqlflag, "sql", false, "sql 형식 사용")
-	flag.BoolVar(&forcejsonflag, "forcejson", false, "sql 형식 사용")
+	no_csv := flag.Bool("no-csv", false, "Not using csv format. csv is default on")
+	flag_all := flag.Bool("all", false, "Same as --json --sql")
+	flag.BoolVar(&jsonflag, "json", false, "Using json format")
+	flag.BoolVar(&sqlflag, "sql", false, "Using sql format")
+	flag.BoolVar(&sqlasjson, "sqlasjson", false, "Using sql format but as json")
 	flag.Parse()
 
 	USE_CSV = !(*no_csv)
