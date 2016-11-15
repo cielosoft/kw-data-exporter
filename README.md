@@ -1,6 +1,7 @@
 # Kingdom Watch Data Exporter
 
 [![Build Status](https://travis-ci.org/cielosoft/kw-data-exporter.svg?branch=master)](https://travis-ci.org/cielosoft/kw-data-exporter)
+[![Coverage Status](https://coveralls.io/repos/github/cielosoft/kw-data-exporter/badge.svg?branch=master)](https://coveralls.io/github/cielosoft/kw-data-exporter?branch=master)
 
 ## Install
 
