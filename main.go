@@ -27,28 +27,29 @@ func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
 		var node = make(map[string]interface{})
 		for _, field := range fields {
 			cell := sheet.Cell(r, field.col)
-			if len(cell.Value) == 0 {
-				continue
-			}
 
 			switch field.ftype {
 			case "string":
 				value := TrimString(cell)
 				node[field.fname] = value
 			case "float":
-				v, e := cell.Float()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-					continue
+				if len(cell.Value) > 0 {
+					v, e := cell.Float()
+					if e != nil {
+						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+						continue
+					}
+					node[field.fname] = v
 				}
-				node[field.fname] = v
 			default:
-				v, e := cell.Int()
-				if e != nil {
-					fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-					continue
+				if len(cell.Value) > 0 {
+					v, e := cell.Int()
+					if e != nil {
+						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+						continue
+					}
+					node[field.fname] = v
 				}
-				node[field.fname] = v
 			}
 		}
 		if len(node) == len(fields) {
