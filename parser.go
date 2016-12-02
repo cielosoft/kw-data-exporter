@@ -48,6 +48,11 @@ func ReadHeader(sheet *xlsx.Sheet) (header Header) {
 	if sheet.MaxRow < 4 || sheet.MaxCol < 2 {
 		return
 	}
+	for i := 0; i < 4; i++ {
+		if IsComment(sheet.Cell(i, 0)) == false {
+			return
+		}
+	}
 
 	header.exec = strings.ToUpper(TrimString(sheet.Cell(0, 0)))
 	header.name = TrimString(sheet.Cell(0, 1))
