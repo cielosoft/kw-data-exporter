@@ -100,14 +100,6 @@ func ExportCsvFile(filename string) {
 						continue
 					}
 					values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
-				case "auto":
-					switch cell.Type() {
-					case xlsx.CellTypeFormula, xlsx.CellTypeNumeric:
-						v, _ := cell.Float()
-						values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
-					default:
-						values = append(values, TrimString(cell))
-					}
 				default:
 					values = append(values, cell.Value)
 				}
