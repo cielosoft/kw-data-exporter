@@ -39,37 +39,22 @@ func TestCamelToSnake(t *testing.T) {
 	}
 }
 
-func TestExportFile(t *testing.T) {
-	ExportFile(filename)
-}
-
 func TestExportCsvFile(t *testing.T) {
-	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportCsvFile(xlsx_file)
+	ExportCsvFile(filename)
 }
 
 func TestExportJsonFile(t *testing.T) {
-	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportJsonFile(xlsx_file)
+	ExportJsonFile(filename)
 }
 
 func TestExportKeyValueFile(t *testing.T) {
-	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportKeyValueFile(xlsx_file)
+	ExportKeyValueFile(filename)
 }
 
 func TestExportSqlFile(t *testing.T) {
-	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportSqlFile(xlsx_file, filename)
+	ExportSqlFile(filename)
 }
 
 func TestExportSqlAsJsonFile(t *testing.T) {
-	xlsx_file, _ := xlsx.OpenFile(filename)
-	ExportSqlAsJsonFile(xlsx_file)
-}
-
-func BenchmarkExportFile(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		ExportFile(filename)
-	}
+	ExportSqlAsJsonFile(filename)
 }

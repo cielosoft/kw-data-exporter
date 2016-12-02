@@ -12,12 +12,6 @@ import (
 	"strings"
 )
 
-// 전역 변수
-var USE_CSV bool
-var jsonflag bool
-var sqlflag bool
-var sqlasjson bool
-
 func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
 	for r := 1; r < sheet.MaxRow; r++ {
 		if IsComment(sheet.Cell(r, 0)) {
@@ -59,7 +53,13 @@ func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
 	return
 }
 
-func ExportCsvFile(xlsx_file *xlsx.File) {
+func ExportCsvFile(filename string) {
+	xlsx_file, err := xlsx.OpenFile(filename)
+	if err != nil {
+		fmt.Errorf("OpenFile Error:", filename)
+		return
+	}
+
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
 		if len(header.csvFieldList) == 0 {
@@ -119,16 +119,22 @@ func ExportCsvFile(xlsx_file *xlsx.File) {
 			}
 		}
 
-		fn := sheet.Name + ".csv"
-		if err := ioutil.WriteFile(fn, []byte(buffer), 0644); err == nil {
-			fmt.Println("Exported", path.Base(fn), count)
+		savefile := sheet.Name + ".csv"
+		if err := ioutil.WriteFile(savefile, []byte(buffer), 0644); err == nil {
+			fmt.Println("Exported", path.Base(filename), savefile, count)
 		} else {
 			fmt.Println(err)
 		}
 	}
 }
 
-func ExportJsonFile(xlsx_file *xlsx.File) {
+func ExportJsonFile(filename string) {
+	xlsx_file, err := xlsx.OpenFile(filename)
+	if err != nil {
+		fmt.Errorf("OpenFile Error:", filename)
+		return
+	}
+
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
 		if !strings.Contains(header.exec, "JSON") {
@@ -142,9 +148,9 @@ func ExportJsonFile(xlsx_file *xlsx.File) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			fn := CamelToSnake(header.name) + ".json"
-			if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
-				fmt.Println("Exported", path.Base(fn), len(data))
+			savefile := CamelToSnake(header.name) + ".json"
+			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
 				fmt.Println(err)
 			}
@@ -152,7 +158,13 @@ func ExportJsonFile(xlsx_file *xlsx.File) {
 	}
 }
 
-func ExportSqlAsJsonFile(xlsx_file *xlsx.File) {
+func ExportSqlAsJsonFile(filename string) {
+	xlsx_file, err := xlsx.OpenFile(filename)
+	if err != nil {
+		fmt.Errorf("OpenFile Error:", filename)
+		return
+	}
+
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
 		if !strings.Contains(header.exec, "SQL") {
@@ -166,9 +178,9 @@ func ExportSqlAsJsonFile(xlsx_file *xlsx.File) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			fn := CamelToSnake(header.name) + ".json"
-			if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
-				fmt.Println("Exported", path.Base(fn), len(data))
+			savefile := CamelToSnake(header.name) + ".json"
+			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
 				fmt.Println(err)
 			}
@@ -176,7 +188,13 @@ func ExportSqlAsJsonFile(xlsx_file *xlsx.File) {
 	}
 }
 
-func ExportKeyValueFile(xlsx_file *xlsx.File) {
+func ExportKeyValueFile(filename string) {
+	xlsx_file, err := xlsx.OpenFile(filename)
+	if err != nil {
+		fmt.Errorf("OpenFile Error:", filename)
+		return
+	}
+
 	for _, sheet := range xlsx_file.Sheets {
 		header := ReadHeader(sheet)
 		if !strings.Contains(header.exec, "KEYVALUE") {
@@ -229,9 +247,9 @@ func ExportKeyValueFile(xlsx_file *xlsx.File) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			fn := CamelToSnake(header.name) + ".json"
-			if err := ioutil.WriteFile(fn, buffer, 0644); err == nil {
-				fmt.Println("Exported", path.Base(fn), len(data))
+			savefile := CamelToSnake(header.name) + ".json"
+			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
 				fmt.Println(err)
 			}
@@ -239,7 +257,13 @@ func ExportKeyValueFile(xlsx_file *xlsx.File) {
 	}
 }
 
-func ExportSqlFile(xlsx_file *xlsx.File, filename string) {
+func ExportSqlFile(filename string) {
+	xlsx_file, err := xlsx.OpenFile(filename)
+	if err != nil {
+		fmt.Errorf("OpenFile Error:", filename)
+		return
+	}
+
 	var count int = 0
 	var buffer string
 
@@ -308,50 +332,31 @@ func ExportSqlFile(xlsx_file *xlsx.File, filename string) {
 	if count > 0 {
 		basename := path.Base(filename)
 		ext := path.Ext(filename)
-		fn := basename[0:len(basename)-len(ext)] + ".sql"
-		if err := ioutil.WriteFile(fn, []byte(buffer), 0644); err == nil {
-			fmt.Println("Exported", path.Base(fn), count)
+		savefile := basename[0:len(basename)-len(ext)] + ".sql"
+		if err := ioutil.WriteFile(savefile, []byte(buffer), 0644); err == nil {
+			fmt.Println("Exported", basename, savefile, count)
 		} else {
 			fmt.Println(err)
 		}
 	}
 }
 
-func ExportFile(filename string) {
-	xlsx_file, err := xlsx.OpenFile(filename)
-	if err != nil {
-		fmt.Errorf("OpenFile Error:", filename)
-		return
-	}
-
-	if USE_CSV {
-		ExportCsvFile(xlsx_file)
-	}
-
-	if jsonflag {
-		ExportJsonFile(xlsx_file)
-		ExportKeyValueFile(xlsx_file)
-	}
-	if sqlflag {
-		ExportSqlFile(xlsx_file, filename)
-	}
-	if sqlasjson {
-		ExportSqlAsJsonFile(xlsx_file)
-	}
-}
-
 func main() {
-	no_csv := flag.Bool("no-csv", false, "Not using csv format. csv is default on")
-	flag_all := flag.Bool("all", false, "Same as --json --sql")
-	flag.BoolVar(&jsonflag, "json", false, "Using json format")
-	flag.BoolVar(&sqlflag, "sql", false, "Using sql format")
-	flag.BoolVar(&sqlasjson, "sqlasjson", false, "Using sql format but as json")
+	var flagNoCsv bool
+	var flagJson bool
+	var flagSql bool
+	var flagSqlAsJson bool
+
+	flagAll := flag.Bool("all", false, "Same as --json --sql")
+	flag.BoolVar(&flagNoCsv, "no-csv", false, "Not using csv format. csv is default on")
+	flag.BoolVar(&flagJson, "json", false, "Using json format")
+	flag.BoolVar(&flagSql, "sql", false, "Using sql format")
+	flag.BoolVar(&flagSqlAsJson, "sqlasjson", false, "Using sql format but as json")
 	flag.Parse()
 
-	USE_CSV = !(*no_csv)
-	if *flag_all {
-		jsonflag = true
-		sqlflag = true
+	if *flagAll {
+		flagJson = true
+		flagSql = true
 	}
 
 	// 기본은 현재 디렉토리
@@ -360,20 +365,37 @@ func main() {
 		target = flag.Arg(0)
 	}
 
-	fileinfo, err := os.Stat(target)
-	if os.IsNotExist(err) {
+	fileInfo, err := os.Stat(target)
+	if err != nil {
 		return
 	}
 
-	if fileinfo.IsDir() {
+	var fileList []string
+	if fileInfo.IsDir() {
 		if files, err := ioutil.ReadDir(target); err == nil {
 			for _, file := range files {
 				if path.Ext(file.Name()) == ".xlsx" && !strings.HasPrefix(file.Name(), "~") {
-					ExportFile(path.Join(target, file.Name()))
+					fileList = append(fileList, path.Join(target, file.Name()))
 				}
 			}
 		}
 	} else {
-		ExportFile(target)
+		fileList = append(fileList, target)
+	}
+
+	for _, f := range fileList {
+		if !flagNoCsv {
+			ExportCsvFile(f)
+		}
+		if flagJson {
+			ExportJsonFile(f)
+			ExportKeyValueFile(f)
+		}
+		if flagSql {
+			ExportSqlFile(f)
+		}
+		if flagSqlAsJson {
+			ExportSqlAsJsonFile(f)
+		}
 	}
 }
