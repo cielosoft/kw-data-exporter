@@ -23,9 +23,6 @@ func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
 			cell := sheet.Cell(r, field.col)
 
 			switch field.ftype {
-			case "string":
-				value := TrimString(cell)
-				node[field.fname] = value
 			case "float":
 				if len(cell.Value) > 0 {
 					v, e := cell.Float()
@@ -35,6 +32,9 @@ func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
 					}
 					node[field.fname] = v
 				}
+			case "string":
+				value := TrimString(cell)
+				node[field.fname] = value
 			default:
 				if len(cell.Value) > 0 {
 					v, e := cell.Int()
@@ -84,15 +84,8 @@ func ExportCsvFile(filename string) {
 			var values []string
 			for _, field := range header.csvFieldList {
 				cell := sheet.Cell(r, field.col)
-				// 비어 있다
-				if len(TrimString(cell)) == 0 {
-					// fmt.Printf("row: %d, col: %d, %s\n\n", r, field.col, field.fname)
-					continue
-				}
 
 				switch field.ftype {
-				case "string":
-					values = append(values, TrimString(cell))
 				case "float":
 					v, e := cell.Float()
 					if e != nil {
@@ -100,8 +93,12 @@ func ExportCsvFile(filename string) {
 						continue
 					}
 					values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
+				case "string":
+					values = append(values, TrimString(cell))
 				default:
-					values = append(values, cell.Value)
+					if len(cell.Value) > 0 {
+						values = append(values, TrimString(cell))
+					}
 				}
 			}
 
@@ -221,12 +218,14 @@ func ExportKeyValueFile(filename string) {
 						}
 						value = v
 					default:
-						v, e := cell.Int()
-						if e != nil {
-							fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-							continue
+						if len(cell.Value) > 0 {
+							v, e := cell.Int()
+							if e != nil {
+								fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+								continue
+							}
+							value = v
 						}
-						value = v
 					}
 
 				}
@@ -287,12 +286,7 @@ func ExportSqlFile(filename string) {
 				cell := sheet.Cell(r, field.col)
 				switch field.ftype {
 				case "string":
-					v, e := cell.String()
-					if e != nil {
-						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-						continue
-					}
-					values = append(values, "'"+v+"'")
+					values = append(values, "'"+TrimString(cell)+"'")
 				case "float":
 					v, e := cell.Float()
 					if e != nil {
@@ -301,12 +295,14 @@ func ExportSqlFile(filename string) {
 					}
 					values = append(values, strconv.FormatFloat(v, 'f', -1, 32))
 				default:
-					v, e := cell.Int()
-					if e != nil {
-						fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
-						continue
+					if len(cell.Value) > 0 {
+						v, e := cell.Int()
+						if e != nil {
+							fmt.Errorf("row: %d, col: %d, %s\n", r, field.col, e)
+							continue
+						}
+						values = append(values, strconv.Itoa(v))
 					}
-					values = append(values, strconv.Itoa(v))
 				}
 			}
 			if len(values) == len(header.fieldList) {
