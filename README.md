@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.org/cielosoft/kw-data-exporter.svg?branch=master)](https://travis-ci.org/cielosoft/kw-data-exporter)
 [![Coverage Status](https://coveralls.io/repos/github/cielosoft/kw-data-exporter/badge.svg?branch=master)](https://coveralls.io/github/cielosoft/kw-data-exporter?branch=master)
 
+_ 혹은 ~ 로 시작하는 파일명은 무시됩니다
+
 ## Install
 
 ```

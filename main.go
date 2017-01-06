@@ -362,7 +362,7 @@ func main() {
 	if fileInfo.IsDir() {
 		if files, err := ioutil.ReadDir(target); err == nil {
 			for _, file := range files {
-				if path.Ext(file.Name()) == ".xlsx" && !strings.HasPrefix(file.Name(), "~") {
+				if path.Ext(file.Name()) == ".xlsx" && !strings.HasPrefix(file.Name(), "~") && !strings.HasPrefix(file.Name(), "_") {
 					fileList = append(fileList, path.Join(target, file.Name()))
 				}
 			}
