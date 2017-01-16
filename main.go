@@ -117,6 +117,33 @@ func ExportCsvFile(filename string) {
 	}
 }
 
+func ExportCsvAsJsonFile(filename string) {
+	xlsx_file, err := xlsx.OpenFile(filename)
+	if err != nil {
+		fmt.Errorf("OpenFile Error:", filename)
+		return
+	}
+
+	for _, sheet := range xlsx_file.Sheets {
+		header := ReadHeader(sheet)
+		if len(header.csvFieldList) == 0 {
+			continue
+		}
+
+		data := ExportJson(sheet, header.csvFieldList)
+		if buffer, err := json.Marshal(data); err != nil {
+			fmt.Println(err)
+		} else {
+			savefile := sheet.Name + ".json"
+			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
+				fmt.Println("Exported", path.Base(filename), savefile, len(data))
+			} else {
+				fmt.Println(err)
+			}
+		}
+	}
+}
+
 func ExportJsonFile(filename string) {
 	xlsx_file, err := xlsx.OpenFile(filename)
 	if err != nil {
@@ -334,12 +361,14 @@ func main() {
 	var flagJson bool
 	var flagSql bool
 	var flagSqlAsJson bool
+	var flagCsvAsJson bool
 
 	flagAll := flag.Bool("all", false, "Same as --json --sql")
 	flag.BoolVar(&flagNoCsv, "no-csv", false, "Not using csv format. csv is default on")
 	flag.BoolVar(&flagJson, "json", false, "Using json format")
 	flag.BoolVar(&flagSql, "sql", false, "Using sql format")
 	flag.BoolVar(&flagSqlAsJson, "sqlasjson", false, "Using sql format but as json")
+	flag.BoolVar(&flagCsvAsJson, "csvasjson", false, "Using csv format as json")
 	flag.Parse()
 
 	if *flagAll {
@@ -372,8 +401,11 @@ func main() {
 	}
 
 	for _, f := range fileList {
-		if !flagNoCsv {
+		if !flagNoCsv && !flagCsvAsJson {
 			ExportCsvFile(f)
+		}
+		if flagCsvAsJson {
+			ExportCsvAsJsonFile(f)
 		}
 		if flagJson {
 			ExportJsonFile(f)
