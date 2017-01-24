@@ -39,14 +39,18 @@ func TestCamelToSnake(t *testing.T) {
 	}
 }
 
+func TestExportJsonFile(t *testing.T) {
+	ExportJsonFile(filename)
+	ExportJsonFile("Wrong filename")
+}
+
 func TestExportCsvFile(t *testing.T) {
 	ExportCsvFile(filename)
 	ExportCsvFile("Wrong filename")
 }
 
-func TestExportJsonFile(t *testing.T) {
-	ExportJsonFile(filename)
-	ExportJsonFile("Wrong filename")
+func TestExportCsvAsJsonFile(t *testing.T) {
+	ExportCsvAsJsonFile(filename)
 }
 
 func TestExportKeyValueFile(t *testing.T) {
