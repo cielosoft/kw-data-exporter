@@ -1,20 +1,20 @@
-# Kingdom Watch Data Exporter
+# Princess Taken Data Exporter
 
-[![Build Status](https://travis-ci.org/cielosoft/kw-data-exporter.svg?branch=master)](https://travis-ci.org/cielosoft/kw-data-exporter)
-[![Coverage Status](https://coveralls.io/repos/github/cielosoft/kw-data-exporter/badge.svg?branch=master)](https://coveralls.io/github/cielosoft/kw-data-exporter?branch=master)
+[![Build Status](https://travis-ci.org/cielosoft/pt-data-exporter.svg?branch=master)](https://travis-ci.org/cielosoft/pt-data-exporter)
+[![Coverage Status](https://coveralls.io/repos/github/cielosoft/pt-data-exporter/badge.svg?branch=master)](https://coveralls.io/github/cielosoft/pt-data-exporter?branch=master)
 
 _ 혹은 ~ 로 시작하는 파일명은 무시됩니다
 
 ## Install
 
 ```
-go get -u github.com/cielosoft/kw-data-exporter
+go get -u github.com/cielosoft/pt-data-exporter
 ```
 
 ## Usages
 
 ```
-kw-data-expoprter --help
+pt-data-expoprter --help
 ```
 
 - no-csv: csv 포맷 사용 안함
