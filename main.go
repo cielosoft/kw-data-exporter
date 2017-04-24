@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+var outputDir string
+
 func ExportJson(sheet *xlsx.Sheet, fields []FieldInfo) (data []interface{}) {
 	for r := 1; r < sheet.MaxRow; r++ {
 		if IsComment(sheet.Cell(r, 0)) {
@@ -108,7 +110,7 @@ func ExportCsvFile(filename string) {
 			}
 		}
 
-		savefile := sheet.Name + ".csv"
+		savefile := path.Join(outputDir, sheet.Name+".csv")
 		if err := ioutil.WriteFile(savefile, []byte(buffer), 0644); err == nil {
 			fmt.Println("Exported", path.Base(filename), savefile, count)
 		} else {
@@ -134,7 +136,7 @@ func ExportCsvAsJsonFile(filename string) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			savefile := sheet.Name + ".json"
+			savefile := path.Join(outputDir, sheet.Name+".json")
 			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
 				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
@@ -164,7 +166,7 @@ func ExportJsonFile(filename string) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			savefile := CamelToSnake(header.name) + ".json"
+			savefile := path.Join(outputDir, CamelToSnake(header.name)+".json")
 			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
 				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
@@ -194,7 +196,7 @@ func ExportSqlAsJsonFile(filename string) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			savefile := CamelToSnake(header.name) + ".json"
+			savefile := path.Join(outputDir, CamelToSnake(header.name)+".json")
 			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
 				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
@@ -265,7 +267,7 @@ func ExportKeyValueFile(filename string) {
 		if buffer, err := json.Marshal(data); err != nil {
 			fmt.Println(err)
 		} else {
-			savefile := CamelToSnake(header.name) + ".json"
+			savefile := path.Join(outputDir, CamelToSnake(header.name)+".json")
 			if err := ioutil.WriteFile(savefile, buffer, 0644); err == nil {
 				fmt.Println("Exported", path.Base(filename), savefile, len(data))
 			} else {
@@ -347,7 +349,7 @@ func ExportSqlFile(filename string) {
 	if count > 0 {
 		basename := path.Base(filename)
 		ext := path.Ext(filename)
-		savefile := basename[0:len(basename)-len(ext)] + ".sql"
+		savefile := path.Join(outputDir, basename[0:len(basename)-len(ext)]+".sql")
 		if err := ioutil.WriteFile(savefile, []byte(buffer), 0644); err == nil {
 			fmt.Println("Exported", basename, savefile, count)
 		} else {
@@ -369,6 +371,7 @@ func main() {
 	flag.BoolVar(&flagSql, "sql", false, "Using sql format")
 	flag.BoolVar(&flagSqlAsJson, "sqlasjson", false, "Using sql format but as json")
 	flag.BoolVar(&flagCsvAsJson, "csvasjson", false, "Using csv format as json")
+	flag.StringVar(&outputDir, "outdir", ".", "output directory")
 	flag.Parse()
 
 	if *flagAll {
@@ -380,6 +383,11 @@ func main() {
 	var target string = "."
 	if flag.NArg() > 0 {
 		target = flag.Arg(0)
+	}
+
+	// 디렉토리 없는 경우 생성
+	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
+		os.MkdirAll(outputDir, 0755)
 	}
 
 	fileInfo, err := os.Stat(target)

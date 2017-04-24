@@ -21,6 +21,7 @@ pt-data-expoprter --help
 - json: json 포맷 사용
 - sql: sql 포맷 사용
 - all: json, sql 포맷 사용
+- outdir: 저장 디렉토리 (없으면 생성 합니다)
 
 ## Rules
 - #표시로 시작하는 경우 주석
