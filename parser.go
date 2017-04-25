@@ -32,7 +32,7 @@ func CamelToSnake(str string) string {
 	runes := []rune(str)
 	length := len(runes)
 
-	var out []rune
+	out := []rune{}
 	for i := 0; i < length; i++ {
 		if i > 0 && unicode.IsUpper(runes[i]) && ((i+1 < length && unicode.IsLower(runes[i+1])) || unicode.IsLower(runes[i-1])) {
 			out = append(out, '_')
